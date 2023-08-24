@@ -1,4 +1,4 @@
-from R_Workspace_Image_Canvas import *
+from Window import *
 import sys
 
 class Window (RUI_Main_Window):
