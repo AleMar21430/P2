@@ -1,22 +1,25 @@
 from qt import *
 from math import *
-import numpy as np
 
 def electric_field_at_point(x1,y1,Q, x, y):
-	dx = x - x1
-	dy = y - y1
-	r = sqrt(dx**2 + dy**2)
-	r_hat = (dx/r, dy/r) if r != 0 else (0, 0)
-	e_magnitude = 8.99e9 * Q / r**2
-	e_x = e_magnitude * r_hat[0]
-	e_y = e_magnitude * r_hat[1]
-	return e_x, e_y
+	dx = x1 - x
+	dy = y1 - y
+	length = sqrt(dx**2 + dy**2)
+	e_magnitude = 8.99e9 * Q / length**2
+
+	return (dx/length) + x1, (dy/length) + y1, e_magnitude
 
 def electric_field_at_line(x1, y1, x2, y2, x, y):
 	Q = 1e-9
-	e1_x, e1_y = electric_field_at_point(x1, y1, Q, x, y)
-	e2_x, e2_y = electric_field_at_point(x2, y2, Q, x, y)
-	return e1_x + e2_x, e1_y + e2_y
+	print(f"{x1}, {y1}, {x2}, {y2}, {x}, {y}")
+	e1_x, e1_y, e_magnitude1 = electric_field_at_point(x1, y1, Q, x, y)
+	e2_x, e2_y, e_magnitude2 = electric_field_at_point(x2, y2, Q, x, y)
+	mix1, mix2 = (e1_x + e2_x) / 2, (e1_y + e2_y) / 2
+	length = sqrt(mix1**2 + mix2**2)
+	mix1 = (mix1/length)
+	mix2 = (mix2/length)
+	mixlen = (e_magnitude1 + e_magnitude2)/2
+	return mix1, mix2, mixlen
 
 class R_Image_Canvas_Scene(QGraphicsScene):
 	def __init__(self):
@@ -147,16 +150,16 @@ class R_Image_Canvas_Viewport(RUI_Graphics_Viewport):
 
 			for item in self.scene().items():
 				if type(item) == Measure:
-					x, y = electric_field_at_line(
+					x, y, size = electric_field_at_line(
 						self.mapFromScene(self.scene().point1.pos()).x(),
-						self.mapFromScene(self.scene().point1.pos()).y(),
+						self.mapFromScene(self.scene().point1.pos()).y()-100,
 						self.mapFromScene(self.scene().point2.pos()).x(),
-						self.mapFromScene(self.scene().point2.pos()).y(),
+						self.mapFromScene(self.scene().point2.pos()).y()+100,
 						self.mapFromScene(item.pos()).x(),
 						self.mapFromScene(item.pos()).y()
 					)
-					angle_degrees = np.degrees(np.arctan2(x, y))
-					item.setVector(sqrt(x*x + abs(y+y)), angle_degrees)
+					angle_degrees = degrees(atan2(x, y))
+					item.setVector(size, angle_degrees)
 
 		elif self.Panning_View:
 			delta = (event.pos() - self.Last_Pos_Pan)
