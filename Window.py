@@ -189,22 +189,25 @@ class Measure(QGraphicsEllipseItem):
 	def __init__(self, x, y):
 		super().__init__(x - 4, y - 4, 8, 8)
 		self.vector = QLineF(self.pos(), self.pos() + QPointF(50, 0))
+		self.angle_degrees = 0.0
+		self.length = 1.0
 
 	def paint(self, painter, option, widget):
-		pen = QPen(Qt.GlobalColor.red, 2)
-		brush = QBrush(Qt.GlobalColor.white)
-		painter.setPen(pen)
-		painter.setBrush(brush)
-
+		painter.setPen(QPen(Qt.GlobalColor.white, 2))
+		painter.setBrush(QBrush(Qt.GlobalColor.white))
 		dot_radius = 2
-		arrow_tip = self.vector.p2()
 
-		painter.drawLine(self.mapFromScene(self.pos()), arrow_tip)
+		painter.drawText(QPointF(self.mapFromScene(self.pos()).x() + 10, self.mapFromScene(self.pos()).y() + 10), f"{round(self.angle_degrees,2)}deg. {round(self.length,5)}V")
+
+		painter.setPen(QPen(Qt.GlobalColor.red, 2))
+		painter.drawLine(self.vector.p1(), self.vector.p2())
 		painter.drawEllipse(self.mapFromScene(self.pos()) , dot_radius * 2, dot_radius * 2)
 
 		super().paint(painter, option, widget)
 
 	def setVector(self, length, angle_degrees):
-		self.vector = QLineF(self.pos(), self.pos() + QPointF(length, 0))
-		self.vector.setAngle(-angle_degrees)
+		self.vector = QLineF(self.mapFromScene(self.pos()), self.mapFromScene(self.pos()) + self.mapFromScene(QPointF(length, 0)))
+		self.vector.setAngle(angle_degrees + 90)
+		self.length = length
+		self.angle_degrees = angle_degrees
 		self.update()
