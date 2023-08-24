@@ -7,10 +7,10 @@ def electric_field_at_point(x1,y1,Q, x, y):
 	length = sqrt(dx**2 + dy**2)
 	e_magnitude = 8.99e9 * Q / length**2
 
-	return (dx/length) + x1, (dy/length) + y1, e_magnitude
+	return (dx/length), (dy/length), e_magnitude
 
 def electric_field_at_line(x1, y1, x2, y2, x, y):
-	Q = 1e-9
+	
 	print(f"{x1}, {y1}, {x2}, {y2}, {x}, {y}")
 	e1_x, e1_y, e_magnitude1 = electric_field_at_point(x1, y1, Q, x, y)
 	e2_x, e2_y, e_magnitude2 = electric_field_at_point(x2, y2, Q, x, y)
@@ -32,14 +32,19 @@ class R_Image_Canvas_Scene(QGraphicsScene):
 		self.addItem(self.line_charge)
 		self.addItem(self.point1)
 		self.addItem(self.point2)
-
-		measure_item = Measure(0,0)
-		self.addItem(measure_item)
+		
+		for i in range(rng):
+			measure_item = Measure(0,0)
+			self.addItem(measure_item)
 
 class R_Workspace_Image_Canvas (RUI_Linear_Contents):
 	def __init__(self, Log: RUI_Text_Stream):
 		super().__init__("_Container",True)
 		self.Log = Log
+
+		global Q, rng
+		Q, ok = QInputDialog.getDouble(self, "Carga Q", "Carga Q:", 0.0001, decimals=10)
+		rng, ok = QInputDialog.getInt(self, "Cantidad de Medidores", "Cantidad de Medidores:", 0.0001, 1)
 
 		self.Scene = R_Image_Canvas_Scene()
 		self.Viewport = R_Image_Canvas_Viewport()
