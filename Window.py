@@ -33,18 +33,16 @@ class R_Image_Canvas_Scene(QGraphicsScene):
 		self.addItem(self.point1)
 		self.addItem(self.point2)
 		
-		for i in range(rng):
-			measure_item = Measure(0,0)
-			self.addItem(measure_item)
+		measure_item = Measure(0,0)
+		self.addItem(measure_item)
 
 class R_Workspace_Image_Canvas (RUI_Linear_Contents):
 	def __init__(self, Log: RUI_Text_Stream):
 		super().__init__("_Container",True)
 		self.Log = Log
 
-		global Q, rng
+		global Q
 		Q, ok = QInputDialog.getDouble(self, "Carga Q", "Carga Q:", 0.0001, decimals=10)
-		rng, ok = QInputDialog.getInt(self, "Cantidad de Medidores", "Cantidad de Medidores:", 0.0001, 1)
 
 		self.Scene = R_Image_Canvas_Scene()
 		self.Viewport = R_Image_Canvas_Viewport()
@@ -132,18 +130,28 @@ class R_Image_Canvas_Viewport(RUI_Graphics_Viewport):
 		self.translate(delta.x(), delta.y())
 
 	def mousePressEvent(self, event: QMouseEvent):
-		if event.button() == Qt.MouseButton.RightButton or event.button() == Qt.MouseButton.MiddleButton:
+		if event.button() == Qt.MouseButton.MiddleButton or event.button() == Qt.MouseButton.MiddleButton:
 			self.Panning_View = True
 			self.Last_Pos_Pan = event.pos()
 		elif event.button() == Qt.MouseButton.LeftButton:
 			self.Moving_Item = True
 			self.item = self.itemAt(event.pos())
 			self.Last_Pos_Move = event.pos()
+		elif event.button() == Qt.MouseButton.RightButton:
+			self.Moving_Item = True
+			measure_item = Measure(0,0)
+			self.scene().addItem(measure_item)
+
+			self.item = measure_item
+			self.Last_Pos_Move = event.pos()
+
 
 	def mouseReleaseEvent(self, event: QMouseEvent):
-		if event.button() == Qt.MouseButton.RightButton or event.button() == Qt.MouseButton.MiddleButton:
+		if event.button() == Qt.MouseButton.MiddleButton or event.button() == Qt.MouseButton.MiddleButton:
 			self.Panning_View = False
 		elif event.button() == Qt.MouseButton.LeftButton:
+			self.Moving_Item = False
+		elif event.button() == Qt.MouseButton.RightButton:
 			self.Moving_Item = False
 
 	def mouseMoveEvent(self, event: QMoveEvent):
