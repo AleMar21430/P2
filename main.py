@@ -1,4 +1,4 @@
-from Window import *
+from window import *
 import sys
 
 class Window (RUI_Main_Window):

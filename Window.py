@@ -1,32 +1,45 @@
 from qt import *
 from math import *
+import numpy as np
+def electric_potential(x, y, x1, y1, x2, y2, Q):
+	k = 8.9875e9  # Coulomb's constant in N m²/C²
 
-def electric_field_at_point(x1,y1,Q, x, y):
+	def integrand(t):
+		dx = x2 - x1
+		dy = y2 - y1
+		r = np.sqrt((x - (x1 + dx * t))**2 + (y - (y1 + dy * t))**2)
+		return Q / r
+
+	# Numerical integration using the trapezoidal rule
+	segments = 1000  # Increase this for higher accuracy
+	t_values = np.linspace(0, 1, segments)
+	dt = 1 / segments
+	integral = np.sum(integrand(t_values[:-1]) + integrand(t_values[1:])) * 0.5 * dt
+
+	return k * integral
+
+def electric_field_direction_at_point(x1, y1, x, y):
 	dx = x1 - x
 	dy = y1 - y
 	length = sqrt(dx**2 + dy**2)
-	e_magnitude = 8.99e9 * Q / length**2
+	return (dx/length), (dy/length)
 
-	return (dx/length), (dy/length), e_magnitude
-
-def electric_field_at_line(x1, y1, x2, y2, x, y):
-	
-	print(f"{x1}, {y1}, {x2}, {y2}, {x}, {y}")
-	e1_x, e1_y, e_magnitude1 = electric_field_at_point(x1, y1, Q, x, y)
-	e2_x, e2_y, e_magnitude2 = electric_field_at_point(x2, y2, Q, x, y)
+def electric_field_direction(x1, y1, x2, y2, x, y):
+	e1_x, e1_y, = electric_field_direction_at_point(x1, y1, x, y)
+	e2_x, e2_y, = electric_field_direction_at_point(x2, y2, x, y)
 	mix1, mix2 = (e1_x + e2_x) / 2, (e1_y + e2_y) / 2
 	length = sqrt(mix1**2 + mix2**2)
+	if length == 0: length = 0.000001
 	mix1 = (mix1/length)
 	mix2 = (mix2/length)
-	mixlen = (e_magnitude1 + e_magnitude2)/2
-	return mix1, mix2, mixlen
+	return mix1, mix2
 
 class R_Image_Canvas_Scene(QGraphicsScene):
 	def __init__(self):
 		super().__init__()
 		
-		self.point1 = MovablePoint(0, -100)
-		self.point2 = MovablePoint(0, 100)
+		self.point1 = MovablePoint(0, -100, -100)
+		self.point2 = MovablePoint(0, 100, 100)
 		self.line_charge = Line_Charge(0,-100,0,100)
 
 		self.addItem(self.line_charge)
@@ -42,7 +55,7 @@ class R_Workspace_Image_Canvas (RUI_Linear_Contents):
 		self.Log = Log
 
 		global Q
-		Q, ok = QInputDialog.getDouble(self, "Carga Q", "Carga Q:", 0.0001, decimals=10)
+		Q, ok = QInputDialog.getDouble(self, "Carga Q", "Carga Q:", 0.000001, decimals=10)
 
 		self.Scene = R_Image_Canvas_Scene()
 		self.Viewport = R_Image_Canvas_Viewport()
@@ -163,7 +176,7 @@ class R_Image_Canvas_Viewport(RUI_Graphics_Viewport):
 
 			for item in self.scene().items():
 				if type(item) == Measure:
-					x, y, size = electric_field_at_line(
+					x, y = electric_field_direction(
 						self.mapFromScene(self.scene().point1.pos()).x(),
 						self.mapFromScene(self.scene().point1.pos()).y()-100,
 						self.mapFromScene(self.scene().point2.pos()).x(),
@@ -172,7 +185,16 @@ class R_Image_Canvas_Viewport(RUI_Graphics_Viewport):
 						self.mapFromScene(item.pos()).y()
 					)
 					angle_degrees = degrees(atan2(x, y))
-					item.setVector(size, angle_degrees)
+					potential = electric_potential(
+						self.mapFromScene(item.pos()).x(),
+						self.mapFromScene(item.pos()).y(),
+						self.mapFromScene(self.scene().point1.pos()).x(),
+						self.mapFromScene(self.scene().point1.pos()).y()-100,
+						self.mapFromScene(self.scene().point2.pos()).x(),
+						self.mapFromScene(self.scene().point2.pos()).y()+100,
+						Q
+					)
+					item.setVector(potential, angle_degrees)
 
 		elif self.Panning_View:
 			delta = (event.pos() - self.Last_Pos_Pan)
@@ -184,9 +206,19 @@ class R_Image_Canvas_Viewport(RUI_Graphics_Viewport):
 		self.scene().update()
 
 class MovablePoint(QGraphicsEllipseItem):
-	def __init__(self, x, y):
+	def __init__(self, x, y, yoffset):
 		super().__init__(x - 4, y - 4, 8, 8)
+		self.offset = yoffset
 		self.setBrush(Qt.GlobalColor.blue)
+
+	def paint(self, painter, option, widget):
+		painter.setPen(QPen(Qt.GlobalColor.white, 2))
+		painter.setBrush(QBrush(Qt.GlobalColor.white))
+
+		painter.drawText(QPointF(self.mapFromScene(self.pos()).x() + 10, self.mapFromScene(self.pos()).y() + 10 + self.offset), f"{round(self.pos().x(),2)}x {round(self.pos().y(),2)}y")
+
+		super().paint(painter, option, widget)
+
 
 class Line_Charge(QGraphicsLineItem):
 	def __init__(self, x1, y1, x2, y2):
@@ -205,7 +237,7 @@ class Measure(QGraphicsEllipseItem):
 		painter.setBrush(QBrush(Qt.GlobalColor.white))
 		dot_radius = 2
 
-		painter.drawText(QPointF(self.mapFromScene(self.pos()).x() + 10, self.mapFromScene(self.pos()).y() + 10), f"{round(self.angle_degrees,2)}deg. {round(self.length,5)}V")
+		painter.drawText(QPointF(self.mapFromScene(self.pos()).x() + 10, self.mapFromScene(self.pos()).y() + 10), f"{round(self.pos().x(),2)}x {round(self.pos().y(),2)}y   {round(self.angle_degrees,2)}deg. {round(self.length,5)}V")
 
 		painter.setPen(QPen(Qt.GlobalColor.red, 2))
 		painter.drawLine(self.vector.p1(), self.vector.p2())
@@ -214,7 +246,7 @@ class Measure(QGraphicsEllipseItem):
 		super().paint(painter, option, widget)
 
 	def setVector(self, length, angle_degrees):
-		self.vector = QLineF(self.mapFromScene(self.pos()), self.mapFromScene(self.pos()) + self.mapFromScene(QPointF(length, 0)))
+		self.vector = QLineF(self.mapFromScene(self.pos()), self.mapFromScene(self.pos()) + QPointF(length, 0))
 		self.vector.setAngle(angle_degrees + 90)
 		self.length = length
 		self.angle_degrees = angle_degrees
