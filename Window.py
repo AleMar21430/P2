@@ -22,6 +22,7 @@ def electric_field_direction_at_point(x1, y1, x, y):
 	dx = x1 - x
 	dy = y1 - y
 	length = sqrt(dx**2 + dy**2)
+	if length == 0: length = 0.000001
 	return (dx/length), (dy/length)
 
 def electric_field_direction(x1, y1, x2, y2, x, y):
@@ -38,9 +39,9 @@ class R_Image_Canvas_Scene(QGraphicsScene):
 	def __init__(self):
 		super().__init__()
 		
-		self.point1 = MovablePoint(0, -100, -100)
-		self.point2 = MovablePoint(0, 100, 100)
-		self.line_charge = Line_Charge(0,-100,0,100)
+		self.point1 = MovablePoint(0, 0, 0)
+		self.point2 = MovablePoint(0, 0, 0)
+		self.line_charge = Line_Charge(0,0,0,0)
 
 		self.addItem(self.line_charge)
 		self.addItem(self.point1)
@@ -172,26 +173,26 @@ class R_Image_Canvas_Viewport(RUI_Graphics_Viewport):
 			delta = (event.pos() - self.Last_Pos_Move) / self.transform().m11()
 			self.item.setPos(self.item.pos().toPoint() + delta)
 			self.Last_Pos_Move = event.pos()
-			self.scene().line_charge.setLine(QLineF(self.scene().point1.pos().x(), self.scene().point1.pos().y()-100, self.scene().point2.pos().x(), self.scene().point2.pos().y()+100))
+			self.scene().line_charge.setLine(QLineF(self.scene().point1.pos().x(), self.scene().point1.pos().y(), self.scene().point2.pos().x(), self.scene().point2.pos().y()))
 
 			for item in self.scene().items():
 				if type(item) == Measure:
 					x, y = electric_field_direction(
-						self.mapFromScene(self.scene().point1.pos()).x(),
-						self.mapFromScene(self.scene().point1.pos()).y()-100,
-						self.mapFromScene(self.scene().point2.pos()).x(),
-						self.mapFromScene(self.scene().point2.pos()).y()+100,
-						self.mapFromScene(item.pos()).x(),
-						self.mapFromScene(item.pos()).y()
+						self.scene().point1.pos().x(),
+						self.scene().point1.pos().y(),
+						self.scene().point2.pos().x(),
+						self.scene().point2.pos().y(),
+						item.pos().x(),
+						item.pos().y()
 					)
 					angle_degrees = degrees(atan2(x, y))
 					potential = electric_potential(
-						self.mapFromScene(item.pos()).x(),
-						self.mapFromScene(item.pos()).y(),
-						self.mapFromScene(self.scene().point1.pos()).x(),
-						self.mapFromScene(self.scene().point1.pos()).y()-100,
-						self.mapFromScene(self.scene().point2.pos()).x(),
-						self.mapFromScene(self.scene().point2.pos()).y()+100,
+						item.pos().x(),
+						item.pos().y(),
+						self.scene().point1.pos().x(),
+						self.scene().point1.pos().y(),
+						self.scene().point2.pos().x(),
+						self.scene().point2.pos().y(),
 						Q
 					)
 					item.setVector(potential, angle_degrees)
